@@ -18,3 +18,5 @@ usage:
 SERIOUS WARNING: Please only use on source code that has been backed up, and is  
 under source control.  There may be a few bugs in this implementation.  I am 
 very afraid of this damaging your source code!
+
+I have only used this on OSX.  It may need some changes to run on Linux.
