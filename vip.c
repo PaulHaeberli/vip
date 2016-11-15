@@ -62,6 +62,16 @@ void fatalexitsplit(int n)
     exit(1);
 }
 
+int binarydata(unsigned char *buf, int n) 
+{
+    while(n--) {
+	char c = *buf++;
+	if(!((c == 9) || (c==10) || (c==13) || (c>=32 && c<=126)))
+	    return 1;
+    }
+    return 0;
+}
+
 int writefile(FILE *outf, const char *filename, int fileno, int nfiles)
 {
     FILE *inf = fopen(filename, "r");
@@ -74,6 +84,11 @@ int writefile(FILE *outf, const char *filename, int fileno, int nfiles)
         int nr = (int)fread(tmpbuf, 1, TEMPBUFSIZE, inf);
         if(nr<=0)
             break;
+	if(binarydata(tmpbuf, nr)) {
+            fprintf(stderr, "vip: Error [%s] is a binary file\n", filename);
+	    fflush(stderr);
+	    exit(1);
+	}
         int nw = (int)fwrite(tmpbuf, 1, nr, outf);
         if(nw != nr) {
             fprintf(stderr, "vip: copy Error: read %d write %d\n", nr, nw);
