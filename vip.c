@@ -49,7 +49,8 @@ void errorexit(const char *msg, const char *filename)
     if(filename) 
         fprintf(stderr, "***    vip: Fatal Error: %s filename: [%s]\n", msg, filename);
     else
-        fprintf(stderr, "vip: Fatal Error: %s\n", msg);
+        fprintf(stderr, "***    vip: Fatal Error: %s\n", msg);
+    fprintf(stderr, "***    vip: mergefile path is [%s]\n", mergetempname);
     fprintf(stderr, "***\n***\n***\n");
     exit(1);
 }
@@ -58,6 +59,7 @@ void fatalexitsplit(int n)
 {
     fprintf(stderr, "***\n***\n***\n");
     fprintf(stderr, "***    vip: fatal Error %d\n", n);
+    fprintf(stderr, "***    vip: mergefile path is [%s]\n", mergetempname);
     fprintf(stderr, "***\n***\n***\n");
     exit(1);
 }
@@ -65,9 +67,9 @@ void fatalexitsplit(int n)
 int binarydata(unsigned char *buf, int n) 
 {
     while(n--) {
-	char c = *buf++;
-	if(!((c == 9) || (c==10) || (c==13) || (c>=32 && c<=126)))
-	    return 1;
+        char c = *buf++;
+        if(!((c == 9) || (c==10) || (c==13) || (c>=32 && c<=126)))
+            return 1;
     }
     return 0;
 }
@@ -84,11 +86,11 @@ int writefile(FILE *outf, const char *filename, int fileno, int nfiles)
         int nr = (int)fread(tmpbuf, 1, TEMPBUFSIZE, inf);
         if(nr<=0)
             break;
-	if(binarydata(tmpbuf, nr)) {
+        if(binarydata(tmpbuf, nr)) {
             fprintf(stderr, "vip: Error [%s] is a binary file\n", filename);
-	    fflush(stderr);
-	    exit(1);
-	}
+            fflush(stderr);
+            exit(1);
+        }
         int nw = (int)fwrite(tmpbuf, 1, nr, outf);
         if(nw != nr) {
             fprintf(stderr, "vip: copy Error: read %d write %d\n", nr, nw);
@@ -330,12 +332,14 @@ void split(const char *mergefilename, time_t *filesec, long *filensec, int nfile
             if(thisfileno != fno) {
                 fprintf(stderr, "***\n***\n***\n");
                 fprintf(stderr, "***    vip: Error: thisfileno is %d, it should be %d\n", thisfileno, fno);
+                fprintf(stderr, "***    vip: mergefile path is [%s]\n", mergetempname);
                 fprintf(stderr, "***\n***\n***\n");
                 exit(1);
             }
             if(totfiles != nfiles) {
                 fprintf(stderr, "***\n***\n***\n");
                 fprintf(stderr, "***    vip: Error: totfiles is %d, it should be %d\n", totfiles, nfiles);
+                fprintf(stderr, "***    vip: mergefile path is [%s]\n", mergetempname);
                 fprintf(stderr, "***\n***\n***\n");
                 exit(1);
             }
@@ -418,10 +422,10 @@ int main(int argc, char **argv)
         while(wait(&loc) == -1) {
         }
         filetime(mergefilename, &nowmergesec, &nowmergensec);
-        if((nowmergesec != mergesec) || (nowmergensec != mergensec)) {
+        if((nowmergesec != mergesec) || (nowmergensec != mergensec))
             split(mergefilename, filesec, filensec, nfiles);
-            filetime(mergefilename, &mergesec, &mergensec);
-        }
+        unlink(mergefilename);
+        return 0;
     } else {
         while(fileexists(flagdirname)) {
             sleep(1);
