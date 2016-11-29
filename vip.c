@@ -116,9 +116,13 @@ void filetime(const char *filename, time_t *sec, long *nsec)
     }
     fstat(f, &buf);
     close(f);
-    struct timespec timemod = buf.st_mtimespec; 
-    *sec = timemod.tv_sec;
-    *nsec = timemod.tv_nsec;
+#ifdef LINUX
+    *sec = buf.st_mtim.tv_sec;
+    *nsec = buf.st_mtim.tv_nsec;
+#else
+    *sec = buf.st_mtimespec.tv_sec;
+    *nsec = buf.st_mtimespec.tv_nsec;
+#endif
 }
 
 void merge(char *mergefilename, char **filenames, time_t *filesec, long *filensec, int nfiles)
