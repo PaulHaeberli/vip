@@ -130,7 +130,8 @@ void merge(char *mergefilename, char **filenames, time_t *filesec, long *filense
     FILE *outf = fopen(mergefilename, "w");
     if(!outf)
         errorexit("can't open output file", mergefilename);
-    for(int i=0; i<nfiles; i++) {
+    int i;
+    for(i=0; i<nfiles; i++) {
         writefile(outf, filenames[i], i+1, nfiles);
         filetime(filenames[i], filesec++, filensec++);
     }
@@ -439,7 +440,8 @@ int main(int argc, char **argv)
                 filetime(mergefilename, &mergesec, &mergensec);
             }
             int nchanged = 0;
-            for(int i=1; i<argc; i++) {
+            int i;
+            for(i=1; i<argc; i++) {
                 int findex = i-1;
                 filetime(argv[i], &fsec, &fnsec);
                 if((fsec != filesec[findex]) || (fnsec != filensec[findex]))
