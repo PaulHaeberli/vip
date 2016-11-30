@@ -64,11 +64,11 @@ void fatalexitsplit(int n)
     exit(1);
 }
 
-int binarydata(unsigned char *buf, int n) 
+int binarydata(unsigned char *buf, int n)
 {
     while(n--) {
-        char c = *buf++;
-        if(!((c == 9) || (c==10) || (c==13) || (c>=32 && c<=126)))
+        unsigned char c = *buf++;
+        if(!((c == 9) || (c==10) || (c==13) || (c==169) || (c==194) || (c==195) || (c>=32 && c<=126)))
             return 1;
     }
     return 0;
@@ -125,11 +125,11 @@ void filetime(const char *filename, time_t *sec, long *nsec)
 #endif
 }
 
-void merge(char *mergefilename, char **filenames, time_t *filesec, long *filensec, int nfiles)
+void merge(char *mfilename, char **filenames, time_t *filesec, long *filensec, int nfiles)
 {
-    FILE *outf = fopen(mergefilename, "w");
+    FILE *outf = fopen(mfilename, "w");
     if(!outf)
-        errorexit("can't open output file", mergefilename);
+        errorexit("can't open output file", mfilename);
     int i;
     for(i=0; i<nfiles; i++) {
         writefile(outf, filenames[i], i+1, nfiles);
@@ -271,7 +271,7 @@ int datasame(char *data1, char *data2, int len1, int len2)
     return 1;
 }
 
-void split(const char *mergefilename, time_t *filesec, long *filensec, int nfiles)
+void split(const char *mfilename, time_t *filesec, long *filensec, int nfiles)
 {
     char buf[MAXTEXTLINE];
 
@@ -280,12 +280,12 @@ void split(const char *mergefilename, time_t *filesec, long *filensec, int nfile
     int len1, len2;
     char *data1, *data2;
     while(1) {
-        data1 = datafromfile(mergefilename, &len1);
+        data1 = datafromfile(mfilename, &len1);
         if(len1<0)
-            errorexit("split: datafromfile failed 1", mergefilename);
-        data2 = datafromfile(mergefilename, &len2);
+            errorexit("split: datafromfile failed 1", mfilename);
+        data2 = datafromfile(mfilename, &len2);
         if(len2<0)
-            errorexit("split: datafromfile failed 2", mergefilename);
+            errorexit("split: datafromfile failed 2", mfilename);
         if(datasame(data1, data2, len1, len2))
             break;
         if(data1)
@@ -304,9 +304,9 @@ void split(const char *mergefilename, time_t *filesec, long *filensec, int nfile
         free(data2);
 
     // parse file and write out files
-    FILE *inf = fopen(mergefilename, "r");
+    FILE *inf = fopen(mfilename, "r");
     if(!inf)
-        errorexit("split: can't open input file", mergefilename);
+        errorexit("split: can't open input file", mfilename);
     int fno = 1;
     while(fgets(buf, MAXTEXTLINE, inf)) {
         if(strstartswith(buf,"//") && strstr(buf,"Start") && strstr(buf,"Fileno:") && strstr(buf,"********* VIP")) {
@@ -373,7 +373,6 @@ void split(const char *mergefilename, time_t *filesec, long *filensec, int nfile
         }
     }
     fclose(inf);
-    unlink(mergetempname);
 }
 
 int fileexists(const char *filename)
@@ -411,12 +410,11 @@ int main(int argc, char **argv)
     int nfiles = argc-1;
     filesec = (time_t *)malloc(nfiles*sizeof(time_t));
     filensec = (long *)malloc(nfiles*sizeof(long));
-    char *mergefilename = "/tmp/t.p";
-    merge(mergefilename, argv+1, filesec, filensec, nfiles);
-    filetime(mergefilename, &mergesec, &mergensec);
+    merge(mergetempname, argv+1, filesec, filensec, nfiles);
+    filetime(mergetempname, &mergesec, &mergensec);
 
     char cmd[1024];
-    sprintf(cmd, "vi /tmp/t.p");
+    sprintf(cmd, "vi %s", mergetempname);
 
     mkdir(flagdirname, 0777);
     pid=fork();
@@ -426,18 +424,18 @@ int main(int argc, char **argv)
         rmdir(flagdirname);
         while(wait(&loc) == -1) {
         }
-        filetime(mergefilename, &nowmergesec, &nowmergensec);
+        filetime(mergetempname, &nowmergesec, &nowmergensec);
         if((nowmergesec != mergesec) || (nowmergensec != mergensec))
-            split(mergefilename, filesec, filensec, nfiles);
-        unlink(mergefilename);
+            split(mergetempname, filesec, filensec, nfiles);
+        unlink(mergetempname);
         return 0;
     } else {
         while(fileexists(flagdirname)) {
             sleep(1);
-            filetime(mergefilename, &nowmergesec, &nowmergensec);
+            filetime(mergetempname, &nowmergesec, &nowmergensec);
             if((nowmergesec != mergesec) || (nowmergensec != mergensec)) {
-                split(mergefilename, filesec, filensec, nfiles);
-                filetime(mergefilename, &mergesec, &mergensec);
+                split(mergetempname, filesec, filensec, nfiles);
+                filetime(mergetempname, &mergesec, &mergensec);
             }
             int nchanged = 0;
             int i;
@@ -448,8 +446,8 @@ int main(int argc, char **argv)
                     nchanged++;
             }
             if(nchanged) {
-                merge(mergefilename, argv+1, filesec, filensec, nfiles);
-                filetime(mergefilename, &mergesec, &mergensec);
+                merge(mergetempname, argv+1, filesec, filensec, nfiles);
+                filetime(mergetempname, &mergesec, &mergensec);
             }
         }
         return 0;
